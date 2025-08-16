@@ -12,6 +12,30 @@
 
 ![SA-V dataset](assets/sa_v_dataset.jpg?raw=true)
 
+### xvdp: Notes on loading configs with hydra
+sam2 pulls checkpoint paths from python but config yaml files from hydra paths which can be "elegantly" obscure...
+If loading the .yaml config files fail, the default paths have to be overwritten for hydra. For example
+```python
+import os
+from hydra.core.global_hydra import GlobalHydra
+from hydra import initialize, compose
+GlobalHydra.instance().clear()
+
+# hydra paths get set on init
+from sam2.build_sam import build_sam2 
+
+sam2_checkpoint = os.path.join(checkpoint_path, "sam2.1_hiera_large.pt") # OK
+config_file =  os.path.join(config_path, "sam2.1_hiera_l.yaml") # <- this won't work
+
+# instead do this and overwrite the hydra paths
+config_file = "sam2.1_hiera_l.yaml"
+config_path = "../some/path/relative/to/cwd"
+# note as of hydra '1.3.2' absolute paths are incorrectly read, eg. "/mnt/Data/sam2_config" is read as "mnt/Data/sam2_config"
+with initialize(version_base=None, config_path=config_path):
+    sam2_model = build_sam2(config_file, sam2_checkpoint, device=device, apply_postprocessing=False)
+
+```
+
 ## Latest updates
 
 **12/11/2024 -- full model compilation for a major VOS speedup and a new `SAM2VideoPredictor` to better handle multi-object tracking**

@@ -74,10 +74,17 @@ class InferenceAPI:
         logger.info(f"using device: {device}")
 
         if device.type == "cuda":
-            # turn on tfloat32 for Ampere GPUs (https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
-            if torch.cuda.get_device_properties(0).major >= 8:
-                torch.backends.cuda.matmul.allow_tf32 = True
-                torch.backends.cudnn.allow_tf32 = True
+            # turn on tfloat32 for Ampere GPUs 
+            # #(https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
+            if torch.cuda.get_device_properties(torch.cuda.current_device()).major >= 8:
+                if torch.__version__ > '2.8.0':
+                    torch.backends.cuda.matmul.fp32_precision  = 'tf32'
+                    torch.backends.cudnn.fp32_precision = 'tf32'
+                else:
+                    # will be deprecated after Pytorch 2.9.  
+                    # https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices
+                    torch.backends.cuda.matmul.allow_tf32 = True
+                    torch.backends.cudnn.allow_tf32 = True
         elif device.type == "mps":
             logging.warning(
                 "\nSupport for MPS devices is preliminary. SAM 2 is trained with CUDA and might "
